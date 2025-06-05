@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Xbox-PC File Share</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 10px; }
+    h1 { text-align: center; }
+    #uploadForm { margin-bottom: 20px; }
+    #fileList { list-style: none; padding-left: 0; }
+    #fileList li { margin: 5px 0; }
+    button, input[type="file"] { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Compartilhar Fotos/Vídeos</h1>
+
+  <!-- Formulário de upload -->
+  <form id="uploadForm">
+    <input type="file" id="fileInput" name="arquivo" accept="image/*,video/*" required />
+    <button type="submit">Enviar pro PC</button>
+  </form>
+
+  <!-- Área onde vai listar os arquivos que já estão no PC -->
+  <h2>Arquivos no PC:</h2>
+  <ul id="fileList">
+    <li>Carregando lista...</li>
+  </ul>
+
+  <script>
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+
+    // Função pra buscar e atualizar a lista de arquivos
+    function atualizarLista() {
+      fetch('/files')
+        .then(res => res.json())
+        .then(files => {
+          fileList.innerHTML = '';
+          if (files.length === 0) {
+            fileList.innerHTML = '<li>Nenhum arquivo encontrado.</li>';
+          } else {
+            files.forEach(file => {
+              const li = document.createElement('li');
+              const link = document.createElement('a');
+              link.href = `/download?file=${encodeURIComponent(file)}`;
+              link.textContent = file;
+              link.target = '_blank';
+              li.appendChild(link);
+              fileList.appendChild(li);
+            });
+          }
+        })
+        .catch(err => {
+          fileList.innerHTML = '<li>Erro ao carregar lista.</li>';
+          console.error(err);
+        });
+    }
+
+    // Quando a página carrega, busca a lista
+    document.addEventListener('DOMContentLoaded', atualizarLista);
+
+    // Lidar com o envio de arquivo
+    uploadForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const arquivo = fileInput.files[0];
+      if (!arquivo) return;
+
+      const formData = new FormData();
+      formData.append('arquivo', arquivo);
+
+      fetch('/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+        fileInput.value = ''; // limpa seleção
+        atualizarLista();     // atualiza lista de arquivos
+      })
+      .catch(err => {
+        alert('Erro ao enviar arquivo.');
+        console.error(err);
+      });
+    });
+  </script>
+</body>
+</html>
